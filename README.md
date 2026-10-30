@@ -11,7 +11,9 @@
 
 ### 実機確認済みの範囲
 
-- Windows + Google Chrome + Sony RC-S380/S（USB `054c:06c1`、WinUSB）。
+- Windows + Google Chrome + Sony RC-S380/S（USB `054c:06c1`）。
+- **Sony公式WinUSBドライバーで認証・機器情報取得・画像送信・表示更新まで成功。** Windows上のnfcpy 1.0.4でも認証・機器情報取得を確認しています。
+- Zadigで割り当てたWinUSBでも画像送信・表示更新まで成功しています。
 - EZ Sign NFC 2.9インチ・4色：表示296×128、内部配列128×296、2bpp（9,472バイト）。
 - 認証、機器情報取得、画像送信、表示更新まで成功（2026年10月30日）。
 - RC-S380/S版での別サイズ、別リーダー、Edge、Linux/macOSのWebUSB動作は未検証です。
@@ -19,7 +21,40 @@
 ### Windowsのドライバー設定
 
 Sonyの `sonynfcport100c` が割り当てられていると `USBDevice.open(): Access denied` になる場合があります。
-WindowsのWebUSBには **WinUSB** が必要です。SonyのNFCポートソフトウェアの更新とは別の設定です。
+WindowsのWebUSBには **WinUSB** が必要です。通常の更新だけでなく、WinUSBへの切り替えを確認してください。
+
+#### 推奨：Sony公式ソフトウェアでWinUSBに切り替える
+
+1. [Sony公式のNFCポートソフトウェア](https://www.sony.co.jp/Products/felica/consumer/support/download/nfcportsoftware.html)から
+   `NFCPortWithDriver.exe` をダウンロードします。
+2. 保存先のフォルダーで、コマンドプロンプトから次のように実行します。`/WinUSB`の前は半角スペースです。
+
+   ```text
+   NFCPortWithDriver.exe /WinUSB
+   ```
+
+3. インストール後、RC-S380/Sを接続し、スタートメニューの
+   **NFCポート → NFCポート自己診断（ドライバ切り換え）**を開きます。
+4. **設定**タブで対象のRC-S380/Sの **WinUSB** を選択し、**更新**を押します。
+5. 再起動を求められた場合は再起動します。ブラウザーでHTMLを再読み込みし、再接続してください。
+
+`/WinUSB`はWinUSB関連機能を含めて導入するためのオプションです。インストーラーの実行と、
+自己診断ツールでのドライバー切り替えは別の手順です。
+このフォークの確認環境では、切り替え後のサービス名は `WINUSB`、ドライバー提供元は
+`Sony Imaging Products & Solutions Inc.` でした。INFの公開名（`oemXX.inf`）はPCごとに異なります。
+
+**手順の根拠について：** Sonyの公開ダウンロードページには`/WinUSB`の説明を確認できていません。
+上記のオプションと切り替え操作は、[マネーフォワードの導入手順](https://biz.moneyforward.com/support/attendance/guide/timestamp/pasori04.html)にも記載されています。
+また、入手した6.3.0.1のインストーラーを実行せずに調べ、内部スクリプトの`/WinUSB`引数処理と
+`RCS380_WinUSB.inf`、WinUSB用自己診断ツールの同梱情報を確認しています。
+インストーラーの引数あり／なしによる導入差分の比較は未実施です。
+
+WinUSBでは、NFC Portドライバーを前提とする既存アプリが利用できなくなる場合があります。
+Sony公式ツールで切り替えた場合は、同じ設定画面で **NFC Port** を選択して更新すると元に戻せます。
+
+#### 代替：ZadigでWinUSBを割り当てる
+
+Sony公式ツールで切り替えられない場合の代替手順です。公式WinUSBで接続できている場合、Zadigへの変更は不要です。
 
 1. 必要なら現在のSonyドライバーをバックアップしてください。管理者のターミナルで
    `pnputil /enum-drivers` から対象のINFを特定し、`pnputil /export-driver oemXX.inf <backup-folder>` で保存できます。
