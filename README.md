@@ -1,5 +1,55 @@
 # EZ Sign NFC Tools
 
+> このフォークは [JUN-KOBAYASHI/ezsign-nfc-tools](https://github.com/JUN-KOBAYASHI/ezsign-nfc-tools) に **RC-S380/S用WebUSBライター**を追加したものです。
+> 元のRC-S300用HTMLとArduinoライブラリも同梱しています。
+
+## RC-S380/S版（このフォークで追加）
+
+[`ezsign-rcs380-writer.html`](./ezsign-rcs380-writer.html) と [`rcs380.js`](./rcs380.js) を同じフォルダーに置き、ChromeでHTMLを開いてください。
+ローカルファイルから、または `python -m http.server 8765 --bind 127.0.0.1` で配信して
+`http://127.0.0.1:8765/ezsign-rcs380-writer.html` を開けます。ブラウザーがUSBデバイスの選択を求めます。
+
+### 実機確認済みの範囲
+
+- Windows + Google Chrome + Sony RC-S380/S（USB `054c:06c1`、WinUSB）。
+- EZ Sign NFC 2.9インチ・4色：表示296×128、内部配列128×296、2bpp（9,472バイト）。
+- 認証、機器情報取得、画像送信、表示更新まで成功（2026年10月30日）。
+- RC-S380/S版での別サイズ、別リーダー、Edge、Linux/macOSのWebUSB動作は未検証です。
+
+### Windowsのドライバー設定
+
+Sonyの `sonynfcport100c` が割り当てられていると `USBDevice.open(): Access denied` になる場合があります。
+WindowsのWebUSBには **WinUSB** が必要です。SonyのNFCポートソフトウェアの更新とは別の設定です。
+
+1. 必要なら現在のSonyドライバーをバックアップしてください。管理者のターミナルで
+   `pnputil /enum-drivers` から対象のINFを特定し、`pnputil /export-driver oemXX.inf <backup-folder>` で保存できます。
+   `oemXX.inf` はPCごとに異なります。
+2. [Zadig公式サイト](https://zadig.akeo.ie/)から入手し、**Options → List All Devices**を選びます。
+3. **NFC Port/PaSoRi 100 USB**を選択し、USB IDが **054C 06C1**であることを確認します。
+4. 変更先に **WinUSB**を選択し、**Replace Driver**を実行します。別のUSB機器を選択しないでください。
+5. USBを抜き差しし、HTMLを再読み込みして接続します。
+
+WinUSBへの変更後は、Sonyドライバーを使う既存アプリが利用できなくなる場合があります。
+戻す場合はデバイスマネージャーで対象デバイスの「ドライバーを元に戻す」を使用するか、
+保存したSonyドライバーを「ドライバーの更新 → コンピューターを参照 → 一覧から選択／ディスク使用」で再割り当てしてください。
+
+### 実装とテスト
+
+RC-S300のCCID／`FF 50`とは異なり、RC-S380/SではPort-100の`D6`/`D7`フレーム、ACK、
+`InSetRF` / `InSetProtocol` / `InCommRF`を使用します。Type Aの選択からRATSまでを明示的に実行し、
+ATSのFSCに応じてAPDUを分割します。応答チェイニングとWTXも処理します。
+画像処理とEZ Sign APDUは上流版をベースにしています。
+通信方式の確認には[nfcpy 1.0.4](https://github.com/nfcpy/nfcpy/tree/v1.0.4)とLinuxで成功したType4ATagによる処理を参照しました。
+このフォークにはnfcpyのソースを同梱していません。
+
+Node.jsで `node tests/rcs380.cjs` を実行すると、模擬USBによるフレーム、チェックサム、Type A選択、
+ATS、APDU／応答の分割、WTX、実機で確認したR-ACKの回帰テストを実行できます。
+これらは実機テストを置き換えるものではありません。
+
+参考：[ChromeのWindows WebUSB要件](https://developer.chrome.com/docs/capabilities/build-for-webusb#windows)
+
+---
+
 NFC で書き換え可能な 4 色電子ペーパー名札「EZ Sign」に、画像を書き込むためのツール集です。本リポジトリには、用途の異なる **2 つの実装** が同梱されています。
 
 | 実装 | 形態 | リーダー | 主な用途 |
